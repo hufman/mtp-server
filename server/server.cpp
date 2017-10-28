@@ -20,6 +20,7 @@
 #include <MtpServer.h>
 #include <MtpStorage.h>
 
+#include <cstdio>
 #include <iostream>
 #include <stdint.h>
 
@@ -32,7 +33,6 @@
 #include <libintl.h>
 #include <locale.h>
 
-#include <hybris/properties/properties.h>
 #include <glog/logging.h>
 
 
@@ -211,10 +211,10 @@ public:
 
     void initStorage()
     {
-        char product_name[PROP_VALUE_MAX];
+        char product_name[92];
 
         // Local storage
-        property_get ("ro.product.model", product_name, "LuneOS device");
+        sprintf(product_name, "Raspberry Pi");
 
         home_storage = new MtpStorage(
             MTP_STORAGE_FIXED_RAM,
