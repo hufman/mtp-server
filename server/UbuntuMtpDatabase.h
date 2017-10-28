@@ -35,6 +35,7 @@
 #include <tuple>
 #include <exception>
 #include <sys/inotify.h>
+#include <attr/xattr.h>
 
 #include <boost/thread.hpp>
 #include <boost/asio.hpp>
@@ -50,6 +51,12 @@
 #include <glog/logging.h>
 
 #define ALL_PROPERTIES 0xffffffff
+
+#define XATTR_ARTIST_NAME "user.Audio.Artist"
+#define XATTR_ALBUM_ARTIST_NAME "user.Audio.AlbumArtist"
+#define XATTR_ALBUM_NAME "user.Audio.Album"
+#define XATTR_TRACK_NAME "user.Audio.Title"
+#define XATTR_TRACK_NUMBER "user.Audio.TrackNo"
 
 namespace asio = boost::asio;
 using namespace boost::filesystem;
@@ -108,6 +115,26 @@ private:
 	}
 
 	return it->second;
+    }
+
+    int xattr_exists(char *path, const char *name) {
+        int result = getxattr(path, name, NULL, 0);
+        if (result == -1) {
+            return false;
+        } else {
+            return true;
+        }
+    }
+
+    int packetPutXattrString(MtpDataPacket& packet, const char *path, const char *name) {
+        char buffer[255];
+        int result = getxattr(path, name, buffer, 255);
+        if (result == -1) {
+            // error
+            packet.putString("\0");
+        } else {
+            packet.putString(buffer);
+        }
     }
 
     int setup_dir_inotify(path p)
@@ -584,7 +611,33 @@ public:
 
         };
 
-        return new MtpObjectPropertyList{list};
+        static const MtpObjectPropertyList listAudio =
+        {
+            MTP_PROPERTY_STORAGE_ID,
+            MTP_PROPERTY_PARENT_OBJECT,
+            MTP_PROPERTY_OBJECT_FORMAT,
+            MTP_PROPERTY_OBJECT_SIZE,
+            MTP_PROPERTY_OBJECT_FILE_NAME,
+            MTP_PROPERTY_DISPLAY_NAME,
+            MTP_PROPERTY_PERSISTENT_UID,
+            MTP_PROPERTY_ASSOCIATION_TYPE,
+            MTP_PROPERTY_ASSOCIATION_DESC,
+            MTP_PROPERTY_PROTECTION_STATUS,
+            MTP_PROPERTY_DATE_CREATED,
+            MTP_PROPERTY_DATE_MODIFIED,
+            MTP_PROPERTY_HIDDEN,
+            MTP_PROPERTY_NON_CONSUMABLE,
+            MTP_PROPERTY_ALBUM_NAME,
+            MTP_PROPERTY_ARTIST,
+            MTP_PROPERTY_ALBUM_ARTIST,
+            MTP_PROPERTY_NAME,
+        };
+
+        if (MTP_FORMAT_IS_AUDIO(format)) {
+            return new MtpObjectPropertyList{listAudio};
+        } else {
+            return new MtpObjectPropertyList{list};
+        }
     }
 
     virtual MtpDevicePropertyList* getSupportedDeviceProperties()
@@ -645,6 +698,18 @@ public:
                         packet.putUInt16(0); // folders are non-consumable
                     else
                         packet.putUInt16(1); // files can usually be played.
+                    break;
+                case MTP_PROPERTY_ARTIST:
+                    packetPutXattrString(packet, db.at(handle).path.c_str(), XATTR_ARTIST_NAME);
+                    break;
+                case MTP_PROPERTY_ALBUM_ARTIST:
+                    packetPutXattrString(packet, db.at(handle).path.c_str(), XATTR_ALBUM_ARTIST_NAME);
+                    break;
+                case MTP_PROPERTY_ALBUM_NAME:
+                    packetPutXattrString(packet, db.at(handle).path.c_str(), XATTR_ALBUM_NAME);
+                    break;
+                case MTP_PROPERTY_NAME:
+                    packetPutXattrString(packet, db.at(handle).path.c_str(), XATTR_TRACK_NAME);
                     break;
                 default: return MTP_RESPONSE_GENERAL_ERROR; break;
             }
@@ -944,6 +1009,34 @@ public:
                 break;
             }
 
+            // Xattr Artist Name
+            if (property == ALL_PROPERTIES || property == MTP_PROPERTY_ARTIST) {
+                packet.putUInt32(i);
+                packet.putUInt16(MTP_PROPERTY_ARTIST);
+                packet.putUInt16(MTP_TYPE_STR);
+                packetPutXattrString(packet, entry.path.c_str(), XATTR_ARTIST_NAME);
+            }
+            // Xattr Album Artist Name
+            if (property == ALL_PROPERTIES || property == MTP_PROPERTY_ALBUM_ARTIST) {
+                packet.putUInt32(i);
+                packet.putUInt16(MTP_PROPERTY_ALBUM_ARTIST);
+                packet.putUInt16(MTP_TYPE_STR);
+                packetPutXattrString(packet, entry.path.c_str(), XATTR_ALBUM_ARTIST_NAME);
+            }
+            // Xattr Album Name
+            if (property == ALL_PROPERTIES || property == MTP_PROPERTY_ALBUM_NAME) {
+                packet.putUInt32(i);
+                packet.putUInt16(MTP_PROPERTY_ALBUM_NAME);
+                packet.putUInt16(MTP_TYPE_STR);
+                packetPutXattrString(packet, entry.path.c_str(), XATTR_ALBUM_NAME);
+            }
+            // Xattr Track Name
+            if (property == ALL_PROPERTIES || property == MTP_PROPERTY_NAME) {
+                packet.putUInt32(i);
+                packet.putUInt16(MTP_PROPERTY_NAME);
+                packet.putUInt16(MTP_TYPE_STR);
+                packetPutXattrString(packet, entry.path.c_str(), XATTR_TRACK_NAME);
+            }
         }
 
         return MTP_RESPONSE_OK;
@@ -1150,6 +1243,11 @@ public:
             case MTP_PROPERTY_DATE_MODIFIED: result = new MtpProperty(property, MTP_TYPE_STR, false); break;
             case MTP_PROPERTY_HIDDEN: result = new MtpProperty(property, MTP_TYPE_UINT16, false); break;
             case MTP_PROPERTY_NON_CONSUMABLE: result = new MtpProperty(property, MTP_TYPE_UINT16, false); break;
+            case MTP_PROPERTY_ALBUM_NAME: result = new MtpProperty(property, MTP_TYPE_STR, false); break;
+            case MTP_PROPERTY_ARTIST: result = new MtpProperty(property, MTP_TYPE_STR, false); break;
+            case MTP_PROPERTY_ALBUM_ARTIST: result = new MtpProperty(property, MTP_TYPE_STR, false); break;
+            case MTP_PROPERTY_NAME: result = new MtpProperty(property, MTP_TYPE_STR, false); break;
+            case MTP_PROPERTY_TRACK: result = new MtpProperty(property, MTP_TYPE_UINT16, false); break;
             default: break;
         }
 

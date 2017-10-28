@@ -489,4 +489,75 @@
 #define MTP_ASSOCIATION_TYPE_UNDEFINED              0x0000
 #define MTP_ASSOCIATION_TYPE_GENERIC_FOLDER         0x0001
 
+/**
+ * \def MTP_FORMAT_IS_AUDIO
+ * Audio filetype test.
+ *
+ * For filetypes that can be either audio
+ * or video, use MTP_FORMAT_IS_AUDIOVIDEO
+ */
+#define MTP_FORMAT_IS_AUDIO(a)\
+(a == MTP_FORMAT_WAV ||\
+ a == MTP_FORMAT_MP3 ||\
+ a == MTP_FORMAT_MP2 ||\
+ a == MTP_FORMAT_WMA ||\
+ a == MTP_FORMAT_OGG ||\
+ a == MTP_FORMAT_FLAC ||\
+ a == MTP_FORMAT_AAC ||\
+ a == MTP_FORMAT_AUDIBLE ||\
+ a == MTP_FORMAT_UNDEFINED_AUDIO)
+
+/**
+ *  \def MTP_FORMAT_IS_VIDEO
+ *  Video filetype test.
+ *
+ * For filetypes that can be either audio
+ * or video, use MTP_FORMAT_IS_AUDIOVIDEO
+ */
+#define MTP_FORMAT_IS_VIDEO(a)\
+(a == MTP_FORMAT_WMV ||\
+ a == MTP_FORMAT_AVI ||\
+ a == MTP_FORMAT_MPEG ||\
+ a == MTP_FORMAT_UNDEFINED_VIDEO)
+
+/**
+ *  \def MTP_FORMAT_IS_AUDIOVIDEO
+ *  Audio and&slash;or video filetype test.
+ */
+#define MTP_FORMAT_IS_AUDIOVIDEO(a)\
+(a == MTP_FORMAT_MP4_CONTAINER ||\
+ a == MTP_FORMAT_ASF)
+
+/**
+ *  \def MTP_FORMAT_IS_TRACK
+ *  Test if filetype is a track.
+ *  Use this to determine if the File API or Track API
+ *  should be used to upload or download an object.
+ */
+#define MTP_FORMAT_IS_TRACK(a)\
+(MTP_FORMAT_IS_AUDIO(a) ||\
+ MTP_FORMAT_IS_VIDEO(a) ||\
+ MTP_FORMAT_IS_AUDIOVIDEO(a))
+
+/**
+ *  \def MTP_FORMAT_IS_IMAGE
+ *  Image filetype test
+ */
+#define MTP_FORMAT_IS_IMAGE(a)\
+(a == MTP_FORMAT_JFIF ||\
+a == MTP_FORMAT_TIFF ||\
+a == MTP_FORMAT_BMP ||\
+a == MTP_FORMAT_GIF ||\
+a == MTP_FORMAT_PICT ||\
+a == MTP_FORMAT_PNG ||\
+a == MTP_FORMAT_JP2 ||\
+a == MTP_FORMAT_JPX)
+
+/**
+ *  \def MTP_FORMAT_IS_ADDRESSBOOK
+ *  Addressbook and Business card filetype test
+ */
+#define MTP_FORMAT_IS_ADDRESSBOOK(a)\
+(a == MTP_FORMAT_VCARD2)
+
 #endif // _MTP_H
